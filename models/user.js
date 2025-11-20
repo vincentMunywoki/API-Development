@@ -1,7 +1,7 @@
 'use strict';
-const {
-  Model
-} = require('sequelize');
+const {Model} = require('sequelize');
+const slugify = require('slugify');
+
 module.exports = (sequelize, DataTypes) => {
   class User extends Model {
     /**
@@ -10,16 +10,20 @@ module.exports = (sequelize, DataTypes) => {
      * The `models/index` file will call this method automatically.
      */
     static associate(models) {
-      // define association here
+      // define association here and Relationships
+      User.hasOne(models.Profile, { foreignKey: 'userId',onDelete: 'CASCADE' }); //One-to-One
+      User.hasMany(models.Post, { foreignKey: 'userId', onDelete: 'CASCADE' }); //One-to-Many
     }
   }
   User.init({
-    email: DataTypes.STRING,
-    password: DataTypes.STRING,
+    email: { type: DataTypes.STRING, allowNull: false, unique: true },
+    password: { type: DataTypes.STRING, allowNull: false },
     name: DataTypes.STRING
   }, {
     sequelize,
     modelName: 'User',
+    timestamps: true, // Adds createdAt
+    paranoid: true //Soft-deletes: adds deletedAt
   });
   return User;
 };
