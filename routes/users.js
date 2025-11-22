@@ -20,6 +20,18 @@ router.post('/', validate(createUserSchema), checkUniqueEmail, async (req, res) 
     }
 });
 
+// Get all users
+router.get('/', async (req, res) => {
+    try {
+        const users = await User.findAll({ include: Profile });
+        res.json(users.map(userWithProfileSerializer));
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+
 // Get User with Profile
 router.get('/:id', async (req, res) => {
     try {
