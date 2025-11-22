@@ -1,26 +1,33 @@
-const db = require('./models');
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
-const {sequelize} = require('./models');
-const { Connection } = require('pg');
-require('dotenv').config();
 
-const app = express();
+const db = require('./models');
+const userRoutes = require('./routes/users');
+
+const app = express(); // <-- CREATE APP FIRST
 const PORT = process.env.PORT || 3000;
 
-//Middlewares
+// Middlewares
 app.use(helmet());
 app.use(cors());
 app.use(morgan('dev'));
 app.use(express.json());
 
-//Test route
+// Routes
+app.use('/users', userRoutes); // <-- AFTER app is defined
+
+// Test route
 app.get('/', (req, res) => res.send('API is running!'));
 
-//sync database for development
-
+// Sync / authenticate database
 db.sequelize.authenticate()
-.then(() => console.log('Database connected!'))
-.catch(err => console.error('Connection error:', err));
+  .then(() => console.log('Database connected!'))
+  .catch(err => console.error('Connection error:', err));
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});

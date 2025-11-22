@@ -8,7 +8,7 @@ const createUserSchema = Joi.object({
         return value;
     }, 'custom email validation'),
     password:Joi.string().min(6).required().pattern(new RegExp('[@#$%^&+=]')), // Custom: Must have special char
-    name: Joi.string(50).optional()
+    name: Joi.string().max(50).optional()
 }) .messages ({
     'string.pattern.base': 'Password must contain at least one special character (@#$%^&+=)'
 });

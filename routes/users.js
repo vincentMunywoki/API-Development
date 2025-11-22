@@ -3,29 +3,32 @@ const { createUserSchema } = require('../validations/user');
 const validate = require('../middlewares/validate');
 const { checkUniqueEmail } = require('../middlewares/customValidate');
 const { User, Profile } = require('../models');
-const { userSerializer, userWithProfileSerializer } = require ('../serializers/user');
-
+const { userSerializer, userWithProfileSerializer } = require('../serializers/user');
+const bcrypt = require('bcrypt');
 
 const router = express.Router();
 
-//Create User (with validation)
+// Create User (with validation)
 router.post('/', validate(createUserSchema), checkUniqueEmail, async (req, res) => {
     try {
-        const user = await User.create(req.body); // <<>> Hash password in real app!
-        res.status(201).json(userSerializer(user)); // Serialized response
+        req.body.password = await bcrypt.hash(req.body.password, 10); // Hash password
+        const user = await User.create(req.body);
+        res.status(201).json(userSerializer(user));
     } catch (error) {
-        res.stutas(500).json({ error: 'Server error' });
+        console.error(error);
+        res.status(500).json({ error: 'Server error' });
     }
 });
 
-// Get User with Profile (nested serializer)
+// Get User with Profile
 router.get('/:id', async (req, res) => {
     try {
-        const user = await User.findByPK(req.params.id, { include: Profile });
-        if (!user) return res.status(404).json({ error : 'User not found' });
-        res.json(userWithProfileSerializer(user)); //Nested output
+        const user = await User.findByPk(req.params.id, { include: Profile });
+        if (!user) return res.status(404).json({ error: 'User not found' });
+        res.json(userWithProfileSerializer(user));
     } catch (error) {
-        res.status(500).json({ error: 'Servr error' });
+        console.error(error);
+        res.status(500).json({ error: 'Server error' });
     }
 });
 
