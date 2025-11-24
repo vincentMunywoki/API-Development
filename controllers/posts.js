@@ -1,4 +1,4 @@
-const { Post, User, Tag } = require('../modles');
+const { Post, User, Tag } = require('../models');
 const Joi = require('joi');
 const validate = require('../middlewares/validate');
 

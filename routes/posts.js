@@ -1,7 +1,7 @@
 const express = require('express');
 const validate = require('../middlewares/validate');
 const { createPostSchema } = require('../controllers/posts'); // Schema is in controller for simplicity
-const { createPost, getPosts, getPostById, updatePost, deletePost } = require('../controllers/posts');
+const { createPost, getPosts, getPostById, updatePost, deletePost, addTagsToPost } = require('../controllers/posts');
 
 const router = express.Router();
 

@@ -45,6 +45,34 @@ router.get('/:id', async (req, res) => {
     }
 });
 
+// Update User
+router.put('/:id', async (req, res) => {
+    try {
+        const user = await User.findByPk(req.params.id);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        await user.update(req.body);
+        res.json(userSerializer(user));
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Delete User
+router.delete('/:id', async (req, res) => {
+    try {
+        const user = await User.findByPk(req.params.id);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        await user.destroy(); // Or soft delete if you have paranoid
+        res.status(204).send();
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 module.exports = router;
 
 

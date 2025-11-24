@@ -33,7 +33,7 @@ const getQueryOptions = (req) => {
 };
 
 //CREATE
-const crateUser = async (req, res) => {
+const createUser = async (req, res) => {
     try {
         const user = await User.create(req.body);
         res.status(201).json(userSerializer(user));
