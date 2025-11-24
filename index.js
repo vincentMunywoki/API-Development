@@ -7,6 +7,7 @@ const morgan = require('morgan');
 const db = require('./models');
 const userRoutes = require('./routes/users');
 const postRoutes = require('./routes/posts');
+const tagsRouter = require('./routes/tags');
 
 const app = express(); // <-- CREATE APP FIRST
 const PORT = process.env.PORT || 3000;
@@ -20,6 +21,7 @@ app.use(express.json());
 // Routes
 app.use('/users', userRoutes); // <-- AFTER app is defined
 app.use('/posts', postRoutes);
+app.use('/tags', tagsRouter);
 
 // Test route
 app.get('/', (req, res) => res.send('API is running!'));
