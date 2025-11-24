@@ -120,4 +120,17 @@ const deletePost = async (req,res) => {
     }
 };
 
-module.exports = { createPost, getPosts, getPostById, updatePost, deletePost };
+// Add a route to associate Tags (Many-to-Many)
+const addTagsToPost = async (req, res) => {
+    try { 
+        const post = await Post.findByPk(req.params.id);
+        if (!post) return res.status(404).json({ error: 'Post Not Found'});
+        const tags = await Tag.findAll({ where: { id: req.body.tagIds } });
+        await post.addTags(tags);
+        res.json(postWithRelationsSerializer(await Post.findByPk(req.params.id, { include: Tag })));
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+module.exports = { createPost, getPosts, getPostById, updatePost, deletePost, addTagsToPost };
