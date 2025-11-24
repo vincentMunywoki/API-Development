@@ -5,12 +5,13 @@ const { checkUniqueEmail } = require('../middlewares/customValidate');
 const { createUser, getUsers, getUserById, updateUser, deleteUser } = require('../controllers/users');
 const { User, Profile } = require('../models');
 const { userSerializer, userWithProfileSerializer } = require('../serializers/user');
+const authenticateJWT = require('../middlewares/authenticateJWT');
 const bcrypt = require('bcrypt');
 
 const router = express.Router();
 
 // Create User (with validation)
-router.post('/', validate(createUserSchema), checkUniqueEmail, async (req, res) => {
+router.post('/', authenticateJWT, validate(createUserSchema), checkUniqueEmail, async (req, res) => {
     try {
         req.body.password = await bcrypt.hash(req.body.password, 10); // Hash password
         const user = await User.create(req.body);
@@ -22,7 +23,7 @@ router.post('/', validate(createUserSchema), checkUniqueEmail, async (req, res) 
 });
 
 // Get all users
-router.get('/', async (req, res) => {
+router.get('/', authenticateJWT, async (req, res) => {
     try {
         const users = await User.findAll({ include: Profile });
         res.json(users.map(userWithProfileSerializer));
@@ -34,7 +35,7 @@ router.get('/', async (req, res) => {
 
 
 // Get User with Profile
-router.get('/:id', async (req, res) => {
+router.get('/:id', authenticateJWT,  async (req, res) => {
     try {
         const user = await User.findByPk(req.params.id, { include: Profile });
         if (!user) return res.status(404).json({ error: 'User not found' });
@@ -46,7 +47,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Update User
-router.put('/:id', async (req, res) => {
+router.put('/:id', authenticateJWT,  async (req, res) => {
     try {
         const user = await User.findByPk(req.params.id);
         if (!user) return res.status(404).json({ error: 'User not found' });
@@ -60,7 +61,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // Delete User
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authenticateJWT,  async (req, res) => {
     try {
         const user = await User.findByPk(req.params.id);
         if (!user) return res.status(404).json({ error: 'User not found' });
