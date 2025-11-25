@@ -12,5 +12,6 @@ router.post('/register', validate(createUserSchema), register);
 router.post('/login', login);
 router.post('/refresh', refresh);
 router.put('/change-password', authenticateJWT, validate(changePasswordSchema), changePassword);
+router.get('/verify-email', verifyEmail);
 
 module.exports = router;
