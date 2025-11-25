@@ -16,7 +16,7 @@ module.exports = (sequelize, DataTypes) => {
     sequelize,
     modelName: 'RefreshToken',
     timestamps: true,
-    paranoid: true
+    paranoid: false
   });
   return RefreshToken;
 };
