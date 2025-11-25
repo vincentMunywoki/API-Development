@@ -9,6 +9,7 @@ const userRoutes = require('./routes/users');
 const postRoutes = require('./routes/posts');
 const tagsRouter = require('./routes/tags');
 const authRoutes = require('./routes/auth');
+const profileRoutes = require('./routes/profiles');
 
 
 const app = express(); // <-- CREATE APP FIRST
@@ -25,6 +26,7 @@ app.use('/users', userRoutes); // <-- AFTER app is defined
 app.use('/posts', postRoutes);
 app.use('/tags', tagsRouter);
 app.use('/auth', authRoutes);
+app.use('/profiles', profileRoutes);
 
 // Test route
 app.get('/', (req, res) => res.send('API is running!'));
