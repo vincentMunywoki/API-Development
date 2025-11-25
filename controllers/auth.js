@@ -1,7 +1,8 @@
-const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 const { User, RefreshToken } = require('../models');
 const { userSerializer } = require('../serializers/user');
+const Joi = require('joi');
 require('dotenv').config();
 
 // REGISTER
@@ -46,8 +47,8 @@ const login = async (req, res) => {
 
     res.json({ accessToken, refreshToken });
   } catch (error) {
-    // res.status(500).json({ error: 'Login failed' });
     console.error("LOGIN ERROR:", error);
+    res.status(500).json({ error: 'Login failed' });
   }
 };
 
@@ -57,31 +58,31 @@ const refresh = async (req, res) => {
   if (!refreshToken) return res.status(401).json({ error: 'Refresh token required' });
 
   try {
-    // Verify and find stored refresh token
     const storedToken = await RefreshToken.findOne({ where: { token: refreshToken } });
     if (!storedToken || storedToken.expiryDate < new Date()) {
       return res.status(403).json({ error: 'Invalid or expired refresh token' });
     }
 
-    // Verify JWT signature
     const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
 
-    // Generate new access token
+    const user = await User.findByPk(decoded.userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
     const accessToken = jwt.sign(
-      { userId: decoded.userId, email: (await User.findByPk(decoded.userId)).email },
+      { userId: user.id, email: user.email },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRATION }
     );
 
-    // Optionally rotate refresh token (issue new one, delete old)
+    // Rotate refresh token
     await storedToken.destroy();
     const newRefreshToken = jwt.sign(
-      { userId: decoded.userId },
+      { userId: user.id },
       process.env.JWT_REFRESH_SECRET,
       { expiresIn: process.env.JWT_REFRESH_EXPIRATION }
     );
     const newExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-    await RefreshToken.create({ token: newRefreshToken, userId: decoded.userId, expiryDate: newExpiry });
+    await RefreshToken.create({ token: newRefreshToken, userId: user.id, expiryDate: newExpiry });
 
     res.json({ accessToken, refreshToken: newRefreshToken });
   } catch (error) {
@@ -89,4 +90,29 @@ const refresh = async (req, res) => {
   }
 };
 
-module.exports = { register, login, refresh };
+// CHANGE PASSWORD
+const changePasswordSchema = Joi.object({
+  oldPassword: Joi.string().required(),
+  newPassword: Joi.string().min(6).required().pattern(new RegExp('[@#$%^&+=]'))
+}).messages({
+  'string.pattern.base': 'New password must contain at least one special character (@#$%^&+=)'
+});
+
+const changePassword = async (req, res) => {
+  try {
+    const user = await User.findByPk(req.user.userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const isMatch = await bcrypt.compare(req.body.oldPassword, user.password);
+    if (!isMatch) return res.status(401).json({ error: 'Incorrect old password' });
+
+    user.password = req.body.newPassword; // Hook will hash it
+    await user.save();
+
+    res.json({ message: 'Password changed successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+module.exports = { register, login, refresh, changePassword, changePasswordSchema };
