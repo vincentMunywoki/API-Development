@@ -47,6 +47,59 @@ const verifyEmail = async (req, res) => {
     }
 };
 
+//Forgot password (reset Link)
+const forgotPassword = async (req, res) => {
+    const { email } = req.body;
+    try {
+        const user = await User.findOne({ where: { email } });
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        const resetToken = jwt.sign(
+            { userId: user.id },
+            process.env.JWT_SECRET,
+            { expiresIn: process.env.PASSWORD_RESET_EXP }
+        );
+        const expiryDate = new Date(Date.now() + 3600000);
+        await passwordresettoken.create({ token: resetToken, userId: user.id, expiryDate });
+
+        const resetLink = `${process.env.APP_URL}/auth/reset-password?token=${resetToken}`;
+        const html = `<p>Click <a href="${resetLink}">here</a> to reset your password.</p>`;
+
+        await sendEmail(email, 'Password Reset', html);
+        res.json({ message: 'Reset link sent to email'});
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Reset Password
+const resetPasswordSchema = Joi.object({
+  token: Joi.string().required(),
+  newPassword: Joi.string().min(6).required().pattern(new RegExp('[@#$%^&+=]'))
+});
+
+const resetPassword = async (req, res) => {
+  const { token, newPassword } = req.body;
+  try {
+    const storedToken = await PasswordResetToken.findOne({ where: { token } });
+    if (!storedToken || storedToken.expiryDate < new Date()) {
+      return res.status(403).json({ error: 'Invalid or expired token' });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findByPk(decoded.userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    user.password = newPassword; // Hook hashes
+    await user.save();
+    await storedToken.destroy(); // Invalidate token
+
+    res.json({ message: 'Password reset successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 // LOGIN
 const login = async (req, res) => {
   try {
@@ -143,4 +196,4 @@ const changePassword = async (req, res) => {
   }
 };
 
-module.exports = { register, login, refresh, changePassword, changePasswordSchema, verifyEmail };
+module.exports = { register, login, refresh, changePassword, forgotPassword, changePasswordSchema, resetPassword, resetPasswordSchema, verifyEmail };

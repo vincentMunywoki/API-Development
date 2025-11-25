@@ -5,6 +5,7 @@ const validate = require('../middlewares/validate');
 const { required } = require('joi');
 const { changePasswordSchema, changePassword } = require('../controllers/auth');
 const authenticateJWT = require('../middlewares/authenticateJWT');
+const { resetPasswordSchema } = require('../controllers/auth'); // If separated
 
 const router = express.Router();
 
@@ -13,5 +14,7 @@ router.post('/login', login);
 router.post('/refresh', refresh);
 router.put('/change-password', authenticateJWT, validate(changePasswordSchema), changePassword);
 router.get('/verify-email', verifyEmail);
+router.post('/forgot-password', forgotPassword);
+router.post('/reset-password', validate(resetPasswordSchema), resetPassword);
 
 module.exports = router;
