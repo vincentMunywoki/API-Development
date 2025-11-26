@@ -5,7 +5,7 @@ const validate = require('../middlewares/validate');
 const { required } = require('joi');
 const { changePasswordSchema, changePassword } = require('../controllers/auth');
 const authenticateJWT = require('../middlewares/authenticateJWT');
-const { resetPasswordSchema } = require('../controllers/auth'); // If separated
+const { resetPasswordSchema, verifyEmail, forgotPassword, resetPassword } = require('../controllers/auth'); 
 
 const router = express.Router();
 

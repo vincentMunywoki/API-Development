@@ -1,38 +1,50 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { sendEmail } = require('../services/email');
-const { User, RefreshToken } = require('../models');
+const { User, RefreshToken, PasswordResetToken } = require('../models');
 const { userSerializer } = require('../serializers/user');
-const Joi = require('joi');
+const Joi = require('joi'); 
 require('dotenv').config();
 
 // REGISTER
 const register = async (req, res) => {
   try {
     const { email, password, name } = req.body;
+
     const existingUser = await User.findOne({ where: { email } });
-    if (existingUser) return res.status(400).json({ error: 'Email already in use' });
+    if (existingUser)
+      return res.status(400).json({ error: 'Email already in use' });
 
+    // Create user
     const user = await User.create({ email, password, name });
-    res.status(201).json(userSerializer(user));
 
+    // Generate verification token
     const verificationToken = jwt.sign(
-        { userId: user.id },
-        process.env.JWT_SECRET,
-        { expiresIn: process.env.EMAIL_VERIFICATION_EXP }
+      { userId: user.id },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.EMAIL_VERIFICATION_EXP }
     );
+
     const verificationLink = `${process.env.APP_URL}/auth/verify-email?token=${verificationToken}`;
     const html = `<p>Click <a href="${verificationLink}">here</a> to verify your email.</p>`;
 
+    // Send email
     await sendEmail(user.email, 'Verify Your Email', html);
+
+    // Response
+    return res.status(201).json({
+      message: 'User registered successfully. Check your email for verification link.',
+      user: userSerializer(user)
+    });
+
   } catch (error) {
-    res.status(500).json({ error: 'Registration failed' });
+    return res.status(500).json({ error: 'Registration failed' });    
   }
 };
 
 // Adding Verify Endpoint
 const verifyEmail = async (req, res) => {
-    const { token } = req.body;
+    const { token } = req.query;
     try {
         const decoded = jwt.verify(token,process.env.JWT_SECRET);
         const user = await User.findByPk(decoded.userId);
@@ -44,6 +56,7 @@ const verifyEmail = async (req, res) => {
         res.json ({ message: 'Email verified successfully'});
     } catch (error) {
         res.status(403).json({ error: 'Invalid or expired token' });
+        //console.log("Received token:", token);
     }
 };
 
@@ -60,7 +73,7 @@ const forgotPassword = async (req, res) => {
             { expiresIn: process.env.PASSWORD_RESET_EXP }
         );
         const expiryDate = new Date(Date.now() + 3600000);
-        await passwordresettoken.create({ token: resetToken, userId: user.id, expiryDate });
+        await PasswordResetToken.create({ token: resetToken, userId: user.id, expiryDate });
 
         const resetLink = `${process.env.APP_URL}/auth/reset-password?token=${resetToken}`;
         const html = `<p>Click <a href="${resetLink}">here</a> to reset your password.</p>`;
