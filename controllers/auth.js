@@ -207,6 +207,7 @@ const changePassword = async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+  
 };
 
 module.exports = { register, login, refresh, changePassword, forgotPassword, changePasswordSchema, resetPassword, resetPasswordSchema, verifyEmail };
