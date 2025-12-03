@@ -15,8 +15,13 @@ const register = async (req, res) => {
     if (existingUser)
       return res.status(400).json({ error: 'Email already in use' });
 
+    // Hash password before saving
+   // const hashedPassword = await bcrypt.hash(password, 10);
+
     // Create user
+    // const user = await User.create({ email, password: hashedPassword, name });
     const user = await User.create({ email, password, name });
+
 
     // Generate verification token
     const verificationToken = jwt.sign(
@@ -56,11 +61,10 @@ const verifyEmail = async (req, res) => {
         res.json ({ message: 'Email verified successfully'});
     } catch (error) {
         res.status(403).json({ error: 'Invalid or expired token' });
-        //console.log("Received token:", token);
     }
 };
 
-//Forgot password (reset Link)
+// Forgot password (reset Link)
 const forgotPassword = async (req, res) => {
     const { email } = req.body;
     try {
@@ -103,7 +107,8 @@ const resetPassword = async (req, res) => {
     const user = await User.findByPk(decoded.userId);
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    user.password = newPassword; // Hook hashes
+    // Hash the new password
+    user.password = await bcrypt.hash(newPassword, 10);
     await user.save();
     await storedToken.destroy(); // Invalidate token
 
@@ -117,8 +122,14 @@ const resetPassword = async (req, res) => {
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
+
     const user = await User.findOne({ where: { email } });
     if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+
+    // Check if email is verified
+    if (!user.verified) {
+      return res.status(401).json({ error: 'Please verify your email before logging in' });
+    }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(401).json({ error: 'Invalid credentials' });
@@ -130,16 +141,17 @@ const login = async (req, res) => {
       { expiresIn: process.env.JWT_EXPIRATION }
     );
 
-    // Generate and store refresh token
+    // Generate refresh token
     const refreshToken = jwt.sign(
       { userId: user.id },
       process.env.JWT_REFRESH_SECRET,
       { expiresIn: process.env.JWT_REFRESH_EXPIRATION }
     );
-    const expiryDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+    const expiryDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     await RefreshToken.create({ token: refreshToken, userId: user.id, expiryDate });
 
     res.json({ accessToken, refreshToken });
+
   } catch (error) {
     console.error("LOGIN ERROR:", error);
     res.status(500).json({ error: 'Login failed' });
@@ -152,16 +164,18 @@ const refresh = async (req, res) => {
   if (!refreshToken) return res.status(401).json({ error: 'Refresh token required' });
 
   try {
+    // Clean up expired tokens first
+    await RefreshToken.destroy({ where: { expiryDate: { [require('sequelize').Op.lt]: new Date() } } });
+
     const storedToken = await RefreshToken.findOne({ where: { token: refreshToken } });
-    if (!storedToken || storedToken.expiryDate < new Date()) {
-      return res.status(403).json({ error: 'Invalid or expired refresh token' });
-    }
+    if (!storedToken) return res.status(403).json({ error: 'Invalid or expired refresh token' });
 
     const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
 
     const user = await User.findByPk(decoded.userId);
     if (!user) return res.status(404).json({ error: 'User not found' });
 
+    // Generate new access token
     const accessToken = jwt.sign(
       { userId: user.id, email: user.email },
       process.env.JWT_SECRET,
@@ -183,7 +197,6 @@ const refresh = async (req, res) => {
     res.status(403).json({ error: 'Invalid refresh token' });
   }
 };
-
 // CHANGE PASSWORD
 const changePasswordSchema = Joi.object({
   oldPassword: Joi.string().required(),
@@ -200,7 +213,8 @@ const changePassword = async (req, res) => {
     const isMatch = await bcrypt.compare(req.body.oldPassword, user.password);
     if (!isMatch) return res.status(401).json({ error: 'Incorrect old password' });
 
-    user.password = req.body.newPassword; // Hook will hash it
+    // Hash new password before saving
+    user.password = await bcrypt.hash(req.body.newPassword, 10);
     await user.save();
 
     res.json({ message: 'Password changed successfully' });

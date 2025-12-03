@@ -9,12 +9,13 @@ const { resetPasswordSchema, verifyEmail, forgotPassword, resetPassword } = requ
 
 const router = express.Router();
 
-router.post('/register', validate(createUserSchema), register);
+// router.post('/register', validate(createUserSchema), register);
 router.post('/login', login);
 router.post('/refresh', refresh);
-router.put('/change-password', authenticateJWT, validate(changePasswordSchema), changePassword);
+router.post('/register', register);
+// router.put('/change-password', authenticateJWT, validate(changePasswordSchema), changePassword);
 router.get('/verify-email', verifyEmail);
 router.post('/forgot-password', forgotPassword);
-router.post('/reset-password', validate(resetPasswordSchema), resetPassword);
+// router.post('/reset-password', validate(resetPasswordSchema), resetPassword);
 
 module.exports = router;

@@ -6,6 +6,6 @@ const { updateProfile } = require('../controllers/profiles');
 
 const router = express.Router();
 
-router.put('/', authenticateJWT, validate(updateProfileSchema), updateProfile);
+// router.put('/', authenticateJWT, validate(updateProfileSchema), updateProfile);
 
 module.exports = router;

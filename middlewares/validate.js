@@ -1,14 +1,20 @@
-const Joi = require('joi');
+/* // middlewares/validate.js
+const { validationResult } = require('express-validator');
 
-const validate = (schema) => {
-    return (req, res, next) => {
-        const { error } = schema.validate(req.body, { abortEarly: false }); // Validate body: change to req.query or req.params if needed
-        if (error) {
-            const errors = error.details.map((detail) => detail.message);
-            return res.status(400).json({ errors });
-        }
-        next();
-    };
+const validate = (schemas) => async (req, res, next) => {
+  // Run each schema validator
+  for (let schema of schemas) {
+    await schema.run(req);
+  }
+
+  // Collect validation errors
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  next();
 };
 
 module.exports = validate;
+ */

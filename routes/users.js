@@ -1,6 +1,5 @@
 const express = require('express');
 const { createUserSchema } = require('../validations/user');
-const validate = require('../middlewares/validate');
 const { checkUniqueEmail } = require('../middlewares/customValidate');
 const { User, Profile } = require('../models');
 const { userSerializer, userWithProfileSerializer } = require('../serializers/user');
@@ -10,6 +9,29 @@ const bcrypt = require('bcrypt');
 
 const router = express.Router();
 
+// ================== PUBLIC ROUTES ==================
+
+// Public Registration (anyone can register)
+router.post(
+  '/register',
+  checkUniqueEmail,
+  (req, res, next) => {
+    const { error } = createUserSchema.validate(req.body);
+    if (error) return res.status(400).json({ errors: error.details.map(d => d.message) });
+    next();
+  },
+  async (req, res) => {
+    try {
+      req.body.password = await bcrypt.hash(req.body.password, 10);
+      const user = await User.create(req.body);
+      res.status(201).json(userSerializer(user));
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'Server error' });
+    }
+  }
+);
+
 // ================== ADMIN ROUTES ==================
 
 // Create User (ADMIN ONLY)
@@ -17,8 +39,12 @@ router.post(
   '/',
   authenticateJWT,
   requireRole('admin'),
-  validate(createUserSchema),
   checkUniqueEmail,
+  (req, res, next) => {
+    const { error } = createUserSchema.validate(req.body);
+    if (error) return res.status(400).json({ errors: error.details.map(d => d.message) });
+    next();
+  },
   async (req, res) => {
     try {
       req.body.password = await bcrypt.hash(req.body.password, 10);
@@ -100,7 +126,7 @@ router.delete(
   }
 );
 
-// ================== USER ROUTES ==================
+// ================== USER SELF-PROFILE ROUTES ==================
 
 // Get own profile
 router.get(

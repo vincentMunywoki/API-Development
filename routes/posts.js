@@ -1,8 +1,6 @@
 const express = require('express');
 const { createPostSchema } = require('../validations/post');
-const validate = require('../middlewares/validate');
 const authenticateJWT = require('../middlewares/authenticateJWT');
-const requireRole = require('../middlewares/requireRole');
 const {
   createPost,
   getPosts,
@@ -15,30 +13,6 @@ const { Post } = require('../models');
 
 const router = express.Router();
 
-// ================== POST ROUTES ==================
-
-// Create a post (any authenticated user)
-router.post(
-  '/',
-  authenticateJWT,
-  validate(createPostSchema),
-  createPost
-);
-
-// Get all posts (any authenticated user)
-router.get(
-  '/',
-  authenticateJWT,
-  getPosts
-);
-
-// Get a single post by ID (any authenticated user)
-router.get(
-  '/:id',
-  authenticateJWT,
-  getPostById
-);
-
 // Middleware: allow only owner or admin
 const ownerOrAdmin = async (req, res, next) => {
   try {
@@ -49,7 +23,7 @@ const ownerOrAdmin = async (req, res, next) => {
       return res.status(403).json({ error: 'Forbidden: Not owner or admin' });
     }
 
-    req.post = post; // attach post to request
+    req.post = post;
     next();
   } catch (error) {
     console.error(error);
@@ -57,28 +31,28 @@ const ownerOrAdmin = async (req, res, next) => {
   }
 };
 
-// Update a post (owner or admin)
-router.put(
-  '/:id',
-  authenticateJWT,
-  ownerOrAdmin,
-  updatePost
-);
+// ================== POST ROUTES ==================
 
-// Delete a post (owner or admin)
-router.delete(
-  '/:id',
-  authenticateJWT,
-  ownerOrAdmin,
-  deletePost
-);
+// Create a post
+router.post('/', authenticateJWT, (req, res, next) => {
+  const { error } = createPostSchema.validate(req.body);
+  if (error) return res.status(400).json({ errors: error.details.map(d => d.message) });
+  next();
+}, createPost);
 
-// Add tags to a post (owner or admin)
-router.post(
-  '/:id/tags',
-  authenticateJWT,
-  ownerOrAdmin,
-  addTagsToPost
-);
+// Get all posts
+router.get('/', authenticateJWT, getPosts);
+
+// Get a single post by ID
+router.get('/:id', authenticateJWT, getPostById);
+
+// Update a post
+router.put('/:id', authenticateJWT, ownerOrAdmin, updatePost);
+
+// Delete a post
+router.delete('/:id', authenticateJWT, ownerOrAdmin, deletePost);
+
+// Add tags to a post
+router.post('/:id/tags', authenticateJWT, ownerOrAdmin, addTagsToPost);
 
 module.exports = router;
