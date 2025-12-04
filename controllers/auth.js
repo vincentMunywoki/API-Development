@@ -79,7 +79,8 @@ const forgotPassword = async (req, res) => {
         const expiryDate = new Date(Date.now() + 3600000);
         await PasswordResetToken.create({ token: resetToken, userId: user.id, expiryDate });
 
-        const resetLink = `${process.env.APP_URL}/auth/reset-password?token=${resetToken}`;
+       // const resetLink = `${process.env.APP_URL}/auth/reset-password?token=${resetToken}`;
+        const resetLink = `${process.env.FRONTEND_URL}/auth/reset-password?token=${resetToken}`;
         const html = `<p>Click <a href="${resetLink}">here</a> to reset your password.</p>`;
 
         await sendEmail(email, 'Password Reset', html);
@@ -107,8 +108,7 @@ const resetPassword = async (req, res) => {
     const user = await User.findByPk(decoded.userId);
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    // Hash the new password
-    user.password = await bcrypt.hash(newPassword, 10);
+    user.password = newPassword;
     await user.save();
     await storedToken.destroy(); // Invalidate token
 

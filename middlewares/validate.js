@@ -1,20 +1,12 @@
-/* // middlewares/validate.js
-const { validationResult } = require('express-validator');
-
-const validate = (schemas) => async (req, res, next) => {
-  // Run each schema validator
-  for (let schema of schemas) {
-    await schema.run(req);
-  }
-
-  // Collect validation errors
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
-
-  next();
+// middlewares/validate.js
+const validate = (schema) => {
+  return (req, res, next) => {
+    const { error } = schema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ error: error.details[0].message });
+    }
+    next();
+  };
 };
 
 module.exports = validate;
- */
