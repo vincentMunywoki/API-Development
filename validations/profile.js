@@ -1,8 +1,13 @@
 const Joi = require('joi');
 
-const updateProfileSchema = Joi.object({
-    bio: Joi.string().optional(),
-    location: Joi.string().optional()
+const createProfileSchema = Joi.object({
+  bio: Joi.string().allow(''),
+  location: Joi.string().allow('')
 });
 
-module.exports = { updateProfileSchema };
+const updateProfileSchema = Joi.object({
+  bio: Joi.string().allow(''),
+  location: Joi.string().allow('')
+});
+
+module.exports = { createProfileSchema, updateProfileSchema };

@@ -1,9 +1,11 @@
-// validations/post.js
-const Joi = require('joi');
+const Joi = require("joi");
 
-const createPostSchema = Joi.object({
-  title: Joi.string().min(3).required(),
+exports.createPostSchema = Joi.object({
+  title: Joi.string().required(),
   content: Joi.string().required()
 });
 
-module.exports = { createPostSchema };
+exports.updatePostSchema = Joi.object({
+  title: Joi.string(),
+  content: Joi.string().optional()
+});
