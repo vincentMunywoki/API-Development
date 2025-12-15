@@ -29,6 +29,7 @@ const getQueryOptions = (req) => {
         options.order = [[field, direction.toUpperCase()]];
     }
 
+    
     return options;
 };
 
