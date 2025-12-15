@@ -31,7 +31,11 @@ module.exports = (sequelize, DataTypes) => {
     verified: {
       type: DataTypes.BOOLEAN,
       defaultValue: false
-    }
+    },
+    active: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true
+  }
   },
     {
       sequelize,

@@ -95,7 +95,18 @@ const forgotPassword = async (req, res) => {
     await PasswordResetToken.create({ token: resetToken, userId: user.id, expiryDate });
 
     const resetLink = `${process.env.FRONTEND_URL}/auth/reset-password?token=${resetToken}`;
-    const html = `<p>Click <a href="${resetLink}">here</a> to reset your password.</p>`;
+    // const html = `<p>Click <a href="${resetLink}">here</a> to reset your password.</p>`;
+    const html = `
+    <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+    <h2>Welcome to our platform!</h2>
+    <p>Thank you for registering — we’re really glad to have you with us.</p>
+    <p>If you ever need to reset your password, you can do so easily by clicking the link below:</p>
+    <p><a href="${resetLink}" style="color: #4a90e2; font-weight: bold;">Reset your password</a></p>
+    <p>If you didn’t request this, feel free to ignore the email.</p>
+    <br/>
+    <p>Warm regards,<br/>The Support Team</p>
+    </div> `;
+
 
     await sendEmail(email, 'Password Reset', html);
 
@@ -129,7 +140,7 @@ const resetPassword = async (req, res) => {
 
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    user.password = await bcrypt.hash(newPassword, 10);
+    user.password = newPassword; // plain password; hook will hash it
     await user.save();
 
     await storedToken.destroy();

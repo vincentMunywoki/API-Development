@@ -81,16 +81,80 @@ const updateUser = async (req, res) => {
   }
 };
 
-// DELETE (Soft-delete)
-const deleteUser = async (req, res) => {
+// Suspend User
+const suspendUser = async (req, res) => {
   try {
     const user = await User.findByPk(req.params.id);
-    if (!user) return res.status(404).json({ error: 'User not found' });
-    await user.destroy();
-    res.status(204).send();
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    user.active = false;
+    await user.save();
+
+    res.json({
+      message: "User suspended successfully",
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        active: user.active,
+        verified: user.verified,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      },
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
-module.exports = { createUser, getUsers, getUserById, updateUser, deleteUser };
+// Activate User
+const activateUser = async (req, res) => {
+  try {
+    const user = await User.findByPk(req.params.id);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    user.active = true;
+    await user.save();
+
+    res.json({
+      message: "User activated successfully",
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        active: user.active,
+        verified: user.verified,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Delete User
+const deleteUser = async (req, res) => {
+  try {
+    const user = await User.findByPk(req.params.id);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    await user.destroy();
+
+    res.json({
+      message: "User deleted successfully",
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
+module.exports = { createUser, getUsers, getUserById, updateUser, deleteUser, activateUser, suspendUser };
