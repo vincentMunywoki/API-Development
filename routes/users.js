@@ -1,4 +1,5 @@
 const express = require("express");
+const jwt = require('jsonwebtoken');
 const { createUserSchema } = require("../validations/user");
 const { checkUniqueEmail } = require("../middlewares/customValidate");
 const { User, Profile } = require("../models");
@@ -17,7 +18,8 @@ const {
   deleteUser,
   suspendUser,
   activateUser,
-} = require("../controllers/users");
+  } = require("../controllers/users");
+const { sendEmail } = require("../services/email");
 
 // ================== PUBLIC ROUTES ==================
 
@@ -171,4 +173,82 @@ router.put("/me/profile", authenticateJWT, async (req, res) => {
   }
 });
 
+// Create Admin - only for existing admins
+
+/* router.post('/create-admin', authenticateJWT, async (req, res) => {
+  try {
+    const requestingUser = req.user;
+
+    if (requestingUser.role !== 'admin') {
+      return res.status(403).json({ message: 'Only admins can create other admins' });
+    }
+
+    const { email, password, name } = req.body;
+
+    const existingUser = await User.findOne({ where: { email } });
+    if (existingUser) return res.status(400).json({ message: 'Email already in use' });
+
+    const newAdmin = await User.create({ email, password, name, role: 'admin' });
+
+    res.status(201).json({
+      message: 'Admin created successfully',
+      admin: { id: newAdmin.id, email: newAdmin.email, name: newAdmin.name }
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+}); */
+
+router.post('/create-admin', authenticateJWT, async (req, res) => {
+  try {
+    // Only admins can create admins
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Only admins can create other admins'});
+    }
+
+    const { email, password, name } = req.body;
+
+    // prevent duplicates
+    const existingUser = await User.findOne({ where: { email }});
+    if (existingUser) {
+      return res.status(400).json({ message: 'Email already in use' });
+    }
+
+    // Create admin - NOT VERIFIED
+    const newAdmin = await User.create({
+      email,
+      password,
+      name,
+      role: 'admin',
+      verified: false
+    });
+
+    // Generate verification token
+    const verificationToken = jwt.sign(
+      { userId: newAdmin.id },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.EMAIL_VERIFICATION_EXP }
+    );
+
+    const verificationLink = `${process.env.APP_URL}/auth/verify-email?token=${verificationToken}`;
+
+    const html = `
+    <p>You have been added as an administrator.</p>
+    <p>Please verify your email to activate your admin account:</p>
+    <p><a href="${verificationLink}"> Verify Email</a></p>
+    `;
+
+    // Send Verification email
+    await sendEmail(newAdmin.email, 'Verify Your Admin Account', html);
+
+    return res.status(201).json({
+      message: 'Admin created successfully. Verification email sent.'
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Failed to create admin' });
+  }
+});
 module.exports = router;

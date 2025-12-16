@@ -163,14 +163,12 @@ const login = async (req, res) => {
     const user = await User.findOne({ where: { email } });
     if (!user) return res.status(401).json({ error: 'Invalid credentials' });
 
-    if (!user.verified) {
-      return res.status(401).json({ error: 'Please verify your email before logging in' });
-    }
+    if (!user.verified) return res.status(401).json({ error: 'Please verify your email' });
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(401).json({ error: 'Invalid credentials' });
 
-    // Access token (IMPORTANT —— includes role)
+    // Generate access token including role
     const accessToken = jwt.sign(
       { userId: user.id, email: user.email, role: user.role },
       process.env.JWT_SECRET,
@@ -183,20 +181,17 @@ const login = async (req, res) => {
       { expiresIn: process.env.JWT_REFRESH_EXPIRATION }
     );
 
-    await RefreshToken.create({
-      token: refreshToken,
-      userId: user.id,
-      expiryDate: new Date(Date.now() + 7 * 24 * 3600 * 1000)
+    res.json({
+      accessToken,
+      refreshToken,
+      user: { id: user.id, email: user.email, role: user.role, name: user.name }
     });
 
-    res.json({ accessToken, refreshToken });
-
   } catch (error) {
-    console.error("LOGIN ERROR:", error);
+    console.error(error);
     res.status(500).json({ error: 'Login failed' });
   }
 };
-
 
 /* ===========================
        REFRESH TOKEN
