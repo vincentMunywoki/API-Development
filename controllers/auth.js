@@ -4,6 +4,7 @@ const { sendEmail } = require('../services/email');
 const { User, RefreshToken, PasswordResetToken } = require('../models');
 const { userSerializer } = require('../serializers/user');
 const Joi = require('joi');
+const { token } = require('morgan');
 require('dotenv').config();
 
 /* ===========================
@@ -156,7 +157,7 @@ const resetPassword = async (req, res) => {
 /* ===========================
             LOGIN
 =========================== */
-const login = async (req, res) => {
+/* const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -189,6 +190,62 @@ const login = async (req, res) => {
 
   } catch (error) {
     console.error(error);
+    res.status(500).json({ error: 'Login failed' });
+  }
+}; */
+
+const login = async (req, res) => {
+  try { 
+    const { email, password } = req.body;
+
+    // Check if user exists
+    const user = await User.findOne({ where: { email } });
+    if (!user) {
+      return res.status(404).json({
+        error: 'User not found. Please register.'
+      });
+    }
+
+    // Check if email is verified
+    if (!user.verified) {
+      return res.status(401).json({
+        error: 'Please verify your email before logging in.'
+      });
+    }
+
+    // Check password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({
+        error: 'Invalid password.'
+      });
+    }
+
+    // Issue tokens
+    const accessToken = jwt.sign(
+      { userId: user.id, email: user.email, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRATION }
+    );
+
+    const refreshTokenValue = jwt.sign(
+      { userId: user.id, role: user.role },
+      process.env.JWT_REFRESH_SECRET,
+      { expiresIn: process.env.JWT_REFRESH_EXPIRATION }
+    );
+
+    // Save refresh token to DB
+    await RefreshToken.create({
+      token: refreshTokenValue,
+      userId: user.id,
+      expiryDate: new Date(Date.now() + 7 * 24 * 3600 * 1000),
+    });
+
+    return res.json({ accessToken, refreshToken: refreshTokenValue });
+
+
+  } catch (error) {
+    console.error('LOGIN ERROR:', error);
     res.status(500).json({ error: 'Login failed' });
   }
 };

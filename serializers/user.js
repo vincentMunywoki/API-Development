@@ -4,6 +4,7 @@ const userSerializer = (user) => {
     email: user.email,
     name: user.name,
     active: user.active,
+    role: user.role,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt
   };
